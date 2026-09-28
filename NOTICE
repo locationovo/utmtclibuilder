@@ -1,0 +1,12 @@
+utmt-ios-builder
+Copyright (C) 2026
+
+This repository contains no source code from UndertaleModTool. It clones the
+upstream repository at build time and patches UndertaleModCli.csproj to target
+iOS. The resulting binary is a derived work of UndertaleModTool and is subject
+to GPLv3.
+
+UndertaleModTool
+Copyright (C) UnderminersTeam
+Licensed under GPLv3
+https://github.com/UnderminersTeam/UndertaleModTool

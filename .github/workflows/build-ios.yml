@@ -1,0 +1,83 @@
+name: Build UndertaleModCli for iOS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      utmt_ref:
+        description: 'UndertaleModTool Git ref'
+        required: false
+        default: 'master'
+      dotnet_version:
+        description: '.NET SDK version'
+        required: false
+        default: '10.0.x'
+
+env:
+  UTMT_REPO: 'https://github.com/UnderminersTeam/UndertaleModTool.git'
+  UTMT_REF: ${{ github.event.inputs.utmt_ref || 'master' }}
+  DOTNET_VERSION: ${{ github.event.inputs.dotnet_version || '10.0.x' }}
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone UTMT
+        run: |
+          set -euo pipefail
+          git clone --recurse-submodules --depth 1 \
+            --branch "${UTMT_REF}" "${UTMT_REPO}" UndertaleModTool \
+            > /tmp/clone.log 2>&1
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install iOS workload
+        run: dotnet workload install ios > /tmp/workload.log 2>&1
+
+      - name: Patch csproj
+        run: |
+          set -euo pipefail
+          python3 scripts/patch_csproj.py \
+            UndertaleModTool/UndertaleModCli/UndertaleModCli.csproj \
+            > /tmp/patch.log 2>&1
+          cat /tmp/patch.log
+
+      - name: Generate entitlements
+        run: python3 scripts/make_entitlements.py entitlements.plist
+
+      - name: Publish
+        run: |
+          set -euo pipefail
+          cd UndertaleModTool
+          if ! dotnet publish UndertaleModCli \
+              -c Release \
+              -r ios-arm64 \
+              --self-contained true \
+              -p:EnableCodeSigning=false \
+              -p:EnablePackageSigning=false \
+              --verbosity quiet \
+              -o ../publish/ios-arm64 \
+              > /tmp/publish.log 2>&1; then
+            echo "::error::publish failed"
+            grep -E -i 'error|MT[0-9]+|IL[0-9]+' /tmp/publish.log || tail -200 /tmp/publish.log
+            exit 1
+          fi
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          cp entitlements.plist publish/ios-arm64/entitlements.plist
+          tar -czf undertalemodcli-ios-arm64.tar.gz -C publish/ios-arm64 .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: utmt-ios-${{ github.run_number }}
+          path: undertalemodcli-ios-arm64.tar.gz
+          retention-days: 14
