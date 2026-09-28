@@ -22,7 +22,7 @@ env:
 jobs:
   build:
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 300
 
     steps:
       - uses: actions/checkout@v4
@@ -70,14 +70,22 @@ jobs:
             exit 1
           fi
 
-      - name: Package
+      - name: Extract binary
         run: |
           set -euo pipefail
-          cp entitlements.plist publish/ios-arm64/entitlements.plist
-          tar -czf undertalemodcli-ios-arm64.tar.gz -C publish/ios-arm64 .
+          BIN=$(find publish/ios-arm64 -name 'UndertaleModCli' -type f -perm -u+x | head -1)
+          if [ -z "$BIN" ]; then
+            echo "::error::binary not found"
+            find publish/ios-arm64 -type f | head -50
+            exit 1
+          fi
+          cp "$BIN" utmtcli
+          file utmtcli
+          cp entitlements.plist entitlements.plist.bak
+          tar -czf utmtcli-ios-arm64.tar.gz utmtcli entitlements.plist.bak
 
       - uses: actions/upload-artifact@v4
         with:
           name: utmt-ios-${{ github.run_number }}
-          path: undertalemodcli-ios-arm64.tar.gz
+          path: utmtcli-ios-arm64.tar.gz
           retention-days: 14

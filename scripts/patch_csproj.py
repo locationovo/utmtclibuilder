@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Patch csproj for iOS Mono runtime with interpreter."""
+"""Patch csproj for iOS NativeAOT with trimmed metadata."""
 
 import sys
 import os
@@ -8,10 +8,18 @@ import xml.etree.ElementTree as ET
 IOS_PROPS = {
     'TargetFramework': 'net10.0-ios',
     'RuntimeIdentifier': 'ios-arm64',
+    'PublishAot': 'true',
+    'PublishAotUsingRuntimePack': 'true',
+    'DisableUnsupportedError': 'true',
+    'IlcGenerateCompleteTypeMetadata': 'false',
+    'IlcTrimMetadata': 'true',
+    'IlcDisableReflection': 'false',
+    'IlcOptimizationPreference': 'Speed',
+    'IlcFoldIdenticalMethodBodies': 'true',
     'PublishTrimmed': 'true',
     'MtouchLink': 'None',
-    'UseInterpreter': 'true',
-    'UseMonoRuntime': 'true',
+    'UseInterpreter': 'false',
+    'UseMonoRuntime': 'false',
     'SupportedOSPlatformVersion': '13.0',
     'ApplicationId': 'com.utmt.cli',
     'ApplicationTitle': 'UndertaleModCli',
@@ -22,6 +30,7 @@ IOS_PROPS = {
     'CFBundleDisplayName': 'UndertaleModCli',
     'CFBundleVersion': '1',
     'CFBundleShortVersionString': '1.0',
+    'NoWarn': 'IL2026;IL3050;IL2070;IL2075;IL2065',
 }
 
 
